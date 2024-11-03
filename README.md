@@ -8,8 +8,8 @@ Efficient LLM training framework optimized for AWS T4 instances.
 shallowflow/
 ├── .github/
 │   ├── workflows/
-│   │   ├── tests.yml          # CI pipeline
-│   │   └── lint.yml           # Code quality checks
+│   │   ├── tests.yml          
+│   │   └── lint.yml           
 │   └── assets/
 │       └── project_diagram.png # Architecture diagram
 ├── data/
