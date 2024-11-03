@@ -24,8 +24,24 @@ shallowflow/
 │   ├── setup_aws.sh
 │   └── run_experiments.sh
 ├── src/
-│   └── shallowflow/
-│       ├── [previous structure]
+│   ├── shallowflow/
+│   │   ├── __init__.py
+│   │   ├── trainer/
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py
+│   │   │   └── llm_trainer.py
+│   │   ├── strategies/
+│   │   │   ├── __init__.py
+│   │   │   ├── ddp.py
+│   │   │   └── fsdp.py
+│   │   ├── utils/
+│   │   │   ├── __init__.py
+│   │   │   ├── memory.py
+│   │   │   ├── metrics.py
+│   │   │   └── aws_utils.py
+│   │   └── monitoring/
+│   │       ├── __init__.py
+│   │       └── trackers.py
 ├── tests/
 │   ├── __init__.py
 │   ├── test_trainer/
