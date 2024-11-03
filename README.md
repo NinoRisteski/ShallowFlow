@@ -31,7 +31,7 @@ shallowflow/
 ├── tests/
 ├── pyproject.toml
 └── README.md
-
+```
 
 ## ShallowFlow Overview
 
