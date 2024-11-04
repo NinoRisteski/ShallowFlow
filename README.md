@@ -62,12 +62,12 @@ shallowflow/
 
 ## ShallowFlow Overview
 
-ShallowFlow is a distributed training framework specifically designed for LLM training on cost-effective AWS GPU instances (g4dn.xlarge with NVIDIA T4). The project aims to make LLM training and fine-tuning accessible to developers with limited GPU resources.
+ShallowFlow is a distributed training framework designed for LLM training on cost-effective AWS GPU instances (g4dn.xlarge with NVIDIA T4). The project aims to make LLM training and fine-tuning accessible to developers with limited GPU resources.
 
 ## Core Purpose
 
 **Primary Objectives**
-- Enable efficient LLM training on single T4 GPU setups
+- Enable LLM training on single T4 GPU setups
 - Optimize memory usage for resource-constrained environments
 - Provide simplified interfaces for LLM fine-tuning
 - Implement cost-effective training strategies
