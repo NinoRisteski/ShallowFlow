@@ -34,6 +34,10 @@ shallowflow/
 │   │   │   ├── __init__.py
 │   │   │   ├── ddp.py
 │   │   │   └── fsdp.py
+│   │   ├── optimizations/        # New directory for optimizations
+│   │   │   ├── __init__.py
+│   │   │   ├── lora.py
+│   │   │   └── quantization.py
 │   │   ├── utils/
 │   │   │   ├── __init__.py
 │   │   │   ├── memory.py
@@ -45,13 +49,15 @@ shallowflow/
 ├── tests/
 │   ├── __init__.py
 │   ├── test_trainer/
-│   │   ├── test_base.py
-│   │   └── test_llm_trainer.py
+│   └── test_optimizations/      # New test directory
+│       ├── test_lora.py
+│       └── test_quantization.py
 │   ├── test_strategies/
 │   └── conftest.py
 ├── examples/
 │   ├── train_gpt2.py
-│   └── finetune_bert.py
+│   ├── train_gpt2_lora.py       # New example
+│   └── train_quantized.py 
 ├── .gitignore
 ├── .pre-commit-config.yaml
 ├── environment.yml
