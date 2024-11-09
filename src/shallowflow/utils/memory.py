@@ -1,14 +1,20 @@
 import torch
 from typing import Dict
 
-class MemoryOptimizer:
-    def __init__(self, gpu_memory: int = 16):  # T4 has 16GB
+class MemoryTracker:
+    def __init__(self, gpu_memory: int = 16):
         self.gpu_memory = gpu_memory * 1024 * 1024 * 1024  # Convert to bytes
         
-    def get_optimal_batch_size(self, model: torch.nn.Module) -> int:
-        total_params = sum(p.numel() for p in model.parameters())
-        param_size = total_params * 4  # Assuming float32
-        
-        available_memory = self.gpu_memory - (param_size * 3)
-        
-        return max(1, int(available_memory / (param_size * 4)))
+    def get_memory_stats(self) -> Dict[str, float]:
+        if torch.cuda.is_available():
+            return {
+                "allocated": torch.cuda.memory_allocated() / 1024**2,
+                "reserved": torch.cuda.memory_reserved() / 1024**2,
+                "max_allocated": torch.cuda.max_memory_allocated() / 1024**2
+            }
+        return {}
+
+    def check_memory_available(self, required_memory: int) -> bool:
+        if not torch.cuda.is_available():
+            return False
+        return torch.cuda.memory_allocated() + required_memory < self.gpu_memory
