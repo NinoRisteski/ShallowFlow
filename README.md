@@ -1,4 +1,4 @@
-![Alt text](assets/shallow flow (1).png)
+![Alt text](assets/shallow_flow_(1).png)
 
 
 Efficient LLM training framework optimized for AWS T4 instances.
