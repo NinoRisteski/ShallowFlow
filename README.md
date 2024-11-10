@@ -1,5 +1,6 @@
-![Alt text](assets/shallow_flow_(1).png)
-
+<p align="center">
+  <img src="assets/shallow_flow_(1).png" alt="Alt text">
+</p>
 
 Efficient LLM training framework optimized for AWS T4 instances.
 
