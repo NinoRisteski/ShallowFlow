@@ -2,8 +2,6 @@
   <img src="assets/shallow_flow_(1).png" alt="Alt text">
 </p>
 
-Efficient LLM training framework optimized for AWS T4 instances.
-
 ## Project Structure
 
 ```plaintext
@@ -74,34 +72,34 @@ ShallowFlow is a distributed training framework designed for LLM training on cos
 
 ## Core
 
-**Primary Objectives**
+**Objectives**
 - Enable LLM training on single T4 GPU setups
 - Optimize memory usage for resource-constrained environments
 - Provide simplified interfaces for LLM fine-tuning
 - Implement cost-effective training strategies
 
-**Key Features**
+**Features**
 - Parameter-efficient fine-tuning (PEFT) support
 - Memory optimization techniques for T4 GPU
 - AWS integration and cost monitoring
 - Support for smaller, efficient models
 - Built-in monitoring and evaluation tools
 
-## Technical Benefits
+## Benefits
 
-**Resource Optimization**
+**Optimization**
 - Utilizes 8-bit quantization for memory efficiency
 - Implements gradient checkpointing
 - Supports efficient model parallelism
 - Optimizes for T4 GPU's 16GB memory constraint
 
-**Cost Efficiency**
+**Efficiency**
 - Leverages AWS g4dn.xlarge ($0.526/hour)
 - Implements spot instance support
 - Provides cost monitoring and optimization
 - Enables efficient resource utilization
 
-## Project Goals
+## Goals
 
 1. **Accessibility**: Make LLM training accessible to developers with limited resources
 2. **Efficiency**: Optimize training for cost-effective GPU instances
