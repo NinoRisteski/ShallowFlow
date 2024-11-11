@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/shallowflow.png" alt="Alt text">
+  <img src="assets/shallow-flow.png" alt="Alt text">
 </p>
 
 ShallowFlow is a distributed training framework designed for LLM training on cost-effective AWS GPU instances (g4dn.xlarge with NVIDIA T4). The project aims to make LLM training and fine-tuning accessible to developers with limited GPU resources.
