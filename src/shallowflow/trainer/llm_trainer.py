@@ -1,4 +1,3 @@
-# src/shallowflow/trainer/llm_trainer.py
 import torch
 from transformers import PreTrainedModel, PreTrainedTokenizer
 from ..utils.config import TrainingConfig
@@ -22,6 +21,8 @@ class LLMTrainer:
         if config.use_quantization:
             self.quantizer = Quantizer(bits=8)
             
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
     def _apply_lora(self):
         # Apply LoRA to model layers
         for name, module in self.model.named_modules():

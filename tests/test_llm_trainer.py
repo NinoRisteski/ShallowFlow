@@ -23,3 +23,4 @@ def test_memory_tracking(small_model, training_config):
     stats = trainer.memory_manager.get_stats()
     assert stats.gpu_used > 0
     assert stats.gpu_total == training_config.gpu_memory * 1024**3
+

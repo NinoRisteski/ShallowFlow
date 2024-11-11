@@ -9,6 +9,9 @@ setup(
         "torch>=2.0.0",
         "transformers>=4.30.0",
         "datasets",
-        "accelerate"
+        "accelerate",
+        "boto3",
+        "wandb",
+        "numpy"
     ],
 )

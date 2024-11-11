@@ -39,10 +39,18 @@ echo "Setting up AWS environment..."
 # Check AWS CLI installation
 if ! command -v aws &> /dev/null; then
     echo "Installing AWS CLI..."
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
-    sudo ./aws/install
-    rm -rf aws awscliv2.zip
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS installation
+        curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
+        sudo installer -pkg AWSCLIV2.pkg -target /
+        rm AWSCLIV2.pkg
+    else
+        # Linux installation
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+        rm -rf aws awscliv2.zip
+    fi
 fi
 
 # Configure AWS credentials if not already configured
