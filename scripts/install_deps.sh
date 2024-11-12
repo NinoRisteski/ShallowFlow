@@ -1,4 +1,3 @@
-# scripts/install_deps.sh
 #!/bin/bash
 
 # Exit on error

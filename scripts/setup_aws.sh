@@ -1,4 +1,3 @@
-# scripts/setup_aws.sh
 #!/bin/bash
 
 # Exit on error

@@ -1,4 +1,3 @@
-# scripts/run_experiments.sh
 #!/bin/bash
 
 # Exit on error
