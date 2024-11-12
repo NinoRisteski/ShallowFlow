@@ -40,12 +40,11 @@ ShallowFlow is a distributed training framework designed for LLM training on cos
 3. **Simplicity**: Provide easy-to-use interfaces for LLM fine-tuning
 4. **Scalability**: Enable scaling from single GPU to larger setups when needed
 
-ShallowFlow fills a specific niche by providing a practical solution for ML engineers and researchers who want to work with LLMs but don't have access to high-end GPU clusters, making distributed training more accessible and cost-effective.
 
 ## Install
 ``` 
 # Clone repository
-git clone https://github.com/yourusername/shallowflow.git
+git clone https://github.com/NinoRisteski/ShallowFlow.git
 cd shallowflow
 
 # Create virtual environment
@@ -158,6 +157,7 @@ python train.py \
     --use_wandb \
     --output_dir trained_models
 ```
+ShallowFlow fills a specific niche by providing a practical solution for ML engineers and researchers who want to work with LLMs but don't have access to high-end GPU clusters, making distributed training more accessible and cost-effective.
 
 ```
 Citations:
