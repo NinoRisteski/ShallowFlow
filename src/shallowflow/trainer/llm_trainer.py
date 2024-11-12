@@ -1,8 +1,11 @@
 import torch
+import torch.distributed as dist
 from transformers import PreTrainedModel, PreTrainedTokenizer
 from ..utils.config import TrainingConfig
 from ..optimizations import LoRALayer, Quantizer
 from ..utils.memory import MemoryTracker
+from typing import Union, List, Dict, Any
+import boto3
 
 class LLMTrainer:
     def __init__(
@@ -31,6 +34,11 @@ class LLMTrainer:
                 in_features = module.in_features
                 out_features = module.out_features
                 
+                if not isinstance(in_features, int) or not isinstance(out_features, int):
+                    raise TypeError("Features must be integers")
+                if in_features <= 0 or out_features <= 0:
+                    raise ValueError("Features must be positive")
+                
                 # Replace with LoRA layer
                 lora_layer = LoRALayer(
                     in_features,
@@ -39,6 +47,18 @@ class LLMTrainer:
                 )
                 setattr(self.model, name, lora_layer)
                 
+    def _setup_distributed(self):
+        """Initialize distributed process group"""
+        if not dist.is_initialized():
+            dist.init_process_group(
+                backend=self.config.backend,
+                world_size=self.config.world_size,
+                rank=self.config.rank
+            )
+        
+        torch.cuda.set_device(self.config.rank)
+        dist.barrier()  # Add synchronization point
+        
     def train(
         self,
         train_dataset,
@@ -50,10 +70,65 @@ class LLMTrainer:
         
         for epoch in range(self.config.num_epochs):
             self.model.train()
-            for batch in train_dataset:
+            for batch_idx, batch in enumerate(train_dataset):
                 loss = self._training_step(batch)
                 self._optimization_step(loss, optimizer)
+                
+                if batch_idx % 100 == 0:
+                    torch.cuda.empty_cache()
                 
             if eval_dataset:
                 eval_loss = self._evaluate(eval_dataset)
                 print(f"Epoch {epoch}: eval_loss = {eval_loss}")
+
+    def process_text(
+        self,
+        text: Union[str, List[str]]
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Process raw text input
+        """
+        if self.tokenizer is None:
+            raise ValueError("Tokenizer not initialized")
+            
+        # Tokenize text
+        encoded = self.tokenizer(
+            text,
+            max_length=self.config.max_length,
+            padding=self.config.padding,
+            truncation=self.config.truncation,
+            return_tensors=self.config.return_tensors,
+            add_special_tokens=self.config.add_special_tokens
+        )
+
+    def cleanup(self):
+        torch.cuda.empty_cache()
+        if hasattr(self, 'wrapped_model'):
+            del self.wrapped_model
+
+    def launch_instance(self) -> Dict:
+        launch_template = {
+            'InstanceType': self.config.instance_type,
+            'ImageId': self._get_deep_learning_ami(),
+            'BlockDeviceMappings': [{
+                'DeviceName': '/dev/xvda',
+                'Ebs': {
+                    'VolumeSize': self.config.volume_size,
+                    'VolumeType': 'gp3'
+                }
+            }]
+        }
+        
+        if self.config.spot_instance:
+            try:
+                return self._launch_spot_instance(launch_template)
+            except boto3.exceptions.Boto3Error as e:
+                raise RuntimeError(f"AWS operation failed: {str(e)}")
+        return self._launch_on_demand_instance(launch_template)
+
+    def process_dataset(self, dataset):
+        if self.max_samples:
+            dataset = dataset[:self.max_samples]
+        
+        for batch in self._create_batches(dataset):
+            yield self.text_processor.process_batch(batch)

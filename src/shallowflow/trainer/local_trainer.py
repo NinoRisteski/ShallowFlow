@@ -21,6 +21,8 @@ class LocalGPUTrainer:
         # Initialize wandb
         self.init_wandb()
         
+        self.scaler = torch.cuda.amp.GradScaler()
+        
     def init_wandb(self):
         """Initialize wandb tracking"""
         wandb.init(
