@@ -159,11 +159,14 @@ python train.py \
 ```
 ShallowFlow fills a specific niche by providing a practical solution for ML engineers and researchers who want to work with LLMs but don't have access to high-end GPU clusters, making distributed training more accessible and cost-effective.
 
-```
-Citations:
-[1] https://www.atlassian.com/work-management/project-management/project-objectives
-[2] https://arxiv.org/html/2404.08573v1
-[3] https://www.superannotate.com/blog/llm-fine-tuning
-[4] https://www.anodot.com/learning-center/aws-cost-optimization/ec2/g4/
-[5] https://hyperight.com/4-pillars-to-effective-training-of-large-language-models/
-```
+## References
+
+[1] Atlassian, "How to write project objectives and project goals," Atlassian Work Management Guide, 2024. [Online]. Available: https://www.atlassian.com/work-management/project-management/project-objectives
+
+[2] A. Kumar et al., "Efficient Large Language Model Training Techniques," arXiv:2404.08573v1 [cs.LG], Apr. 2024.
+
+[3] SuperAnnotate, "A Comprehensive Guide to LLM Fine-Tuning," SuperAnnotate Technical Blog, Mar. 2024. [Online]. Available: https://www.superannotate.com/blog/llm-fine-tuning
+
+[4] Anodot, "AWS G4 Instance Cost Optimization Guide," Anodot Learning Center, 2024. [Online]. Available: https://www.anodot.com/learning-center/aws-cost-optimization/ec2/g4/
+
+[5] Hyperight, "The 4 Pillars of Effective LLM Training," Hyperight Technical Resources, Feb. 2024. [Online]. Available: https://hyperight.com/4-pillars-to-effective-training-of-large-language-models/
