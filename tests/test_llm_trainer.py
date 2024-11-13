@@ -44,12 +44,22 @@ def test_trainer_to_device(small_model, training_config):
     assert next(trainer.model.parameters()).device == expected_device
 
 def test_training_step(small_model, training_config, sample_batch):
+    training_config.device = 'cpu'
+    
     tokenizer = AutoTokenizer.from_pretrained(training_config.model_name)
     trainer = LLMTrainer(
         model=small_model,
         config=training_config,
         tokenizer=tokenizer
     )
+    
+    # Create input_ids and attention_mask with matching sequence length
+    seq_length = 20
+    sample_batch['input_ids'] = torch.randint(0, 50257, (1, seq_length))
+    # Create matching attention mask
+    sample_batch['attention_mask'] = torch.ones((1, seq_length))
+    sample_batch['labels'] = sample_batch['input_ids'].clone()
+    
     loss = trainer._training_step(sample_batch)
     assert isinstance(loss, torch.Tensor)
     assert loss.item() > 0

@@ -12,6 +12,8 @@ from torch.distributed.fsdp.wrap import (
 )
 from dataclasses import dataclass
 from typing import Optional, Dict
+from functools import partial
+from unittest.mock import patch
 
 @dataclass
 class FSDPConfig:
@@ -44,7 +46,8 @@ class FSDPStrategy:
     def prepare_model(self, model: torch.nn.Module) -> FullyShardedDataParallel:
         """Wrap model in FSDP"""
         # Auto wrapping policy
-        auto_wrap_policy = size_based_auto_wrap_policy(
+        auto_wrap_policy = partial(
+            size_based_auto_wrap_policy,
             min_num_params=self.config.min_num_params
         )
         
@@ -59,7 +62,11 @@ class FSDPStrategy:
             fsdp_config["backward_prefetch"] = BackwardPrefetch.BACKWARD_PRE
             
         # Wrap model with FSDP
-        with enable_wrap(wrapper_cls=FullyShardedDataParallel, **fsdp_config):
+        with enable_wrap(
+            wrapper_cls=FullyShardedDataParallel,
+            mixed_precision=self._get_mixed_precision_policy(),
+            device_id=torch.cuda.current_device() if torch.cuda.is_available() else None,
+        ):
             wrapped_model = wrap(model)
             
         return wrapped_model

@@ -166,7 +166,19 @@ class LLMTrainer:
         Private method that performs the actual training step.
         """
         self.model.train()
-        inputs = self.tokenizer(batch['input'], return_tensors='pt').to(self.config.device)
+        # Ensure batch contains the required input data
+        if 'input_ids' in batch:
+            inputs = {'input_ids': batch['input_ids']}
+        elif 'input' in batch:
+            inputs = self.tokenizer(batch['input'], return_tensors='pt')
+        else:
+            raise ValueError("Batch must contain either 'input_ids' or 'input' key")
+        
+        if 'attention_mask' in batch:
+            inputs['attention_mask'] = batch['attention_mask']
+        
+        inputs = {k: v.to(self.config.device) for k, v in inputs.items()}
+        
         labels = batch['labels'].to(self.config.device)
         
         outputs = self.model(**inputs, labels=labels)

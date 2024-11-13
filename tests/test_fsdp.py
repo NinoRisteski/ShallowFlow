@@ -1,4 +1,3 @@
-
 import unittest
 from unittest.mock import patch, MagicMock
 import torch
@@ -19,21 +18,28 @@ class TestFSDPStrategy(unittest.TestCase):
         self.strategy = FSDPStrategy(config=self.config)
     
     @patch('torch.distributed.fsdp.FullyShardedDataParallel')
-    @patch('torch.distributed.fsdp.wrap.wrap')
-    @patch('torch.distributed.fsdp.wrap.enable_wrap')
-    def test_prepare_model(self, mock_enable_wrap, mock_wrap, mock_fsdp):
+    @patch('torch.distributed.fsdp.wrap')
+    @patch('torch.distributed.fsdp.enable_wrap')
+    @patch('torch.cuda.is_available', return_value=False)
+    @patch('torch.cuda.current_device', return_value=0)
+    @patch('torch.cuda.device_count')
+    def test_prepare_model(self, mock_device_count, mock_current_device, mock_cuda_available, mock_enable_wrap, mock_wrap, mock_fsdp):
         # Mock the wrapped model
         wrapped_fsdp = MagicMock(spec=FullyShardedDataParallel)
-        mock_wrap.return_value = wrapped_fsdp
+        mock_wrap.wrap.return_value = wrapped_fsdp
         mock_enable_wrap.return_value.__enter__.return_value = None  
         
+        # Initialize strategy
+        strategy = FSDPStrategy()
+        model = MagicMock()  # Replace with your actual model mock or fixture
+        
         # Call the method under test
-        wrapped_model = self.strategy.prepare_model(self.model)
+        wrapped_model = strategy.prepare_model(model)
         
         # Assertions to ensure wrapping was called correctly
         mock_enable_wrap.assert_called_once()
-        mock_wrap.assert_called_once_with(self.model)
-        self.assertEqual(wrapped_model, wrapped_fsdp)
+        mock_wrap.wrap.assert_called_once_with(model)
+        self.assertIs(wrapped_model, wrapped_fsdp)
     
     def test_prepare_optimizer(self):
         # Choose an optimizer class for testing
