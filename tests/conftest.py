@@ -2,7 +2,7 @@ import pytest
 import torch
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from src.shallowflow.config import LLMConfig
+from src.shallowflow.utils.config import LLMConfig
 
 
 @pytest.fixture(scope="session")

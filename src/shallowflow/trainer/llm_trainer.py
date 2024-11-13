@@ -13,16 +13,20 @@ class LLMTrainer:
         model: PreTrainedModel,
         tokenizer: PreTrainedTokenizer,
         config: TrainingConfig
+
     ):
         self.model = model
         self.tokenizer = tokenizer
         self.config = config
         self.memory_tracker = MemoryTracker(config.gpu_memory)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=config.learning_rate)
+
+
         
         if config.use_lora:
             self._apply_lora()
         if config.use_quantization:
-            self.quantizer = Quantizer(bits=8)
+            self._apply_quantization()
             
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
@@ -43,10 +47,27 @@ class LLMTrainer:
                 lora_layer = LoRALayer(
                     in_features,
                     out_features,
-                    rank=self.config.lora_rank
+                    rank=self.config.lora_config.rank
                 )
                 setattr(self.model, name, lora_layer)
                 
+    def _apply_quantization(self):
+        """
+        Apply quantization to the model based on the training configuration.
+        """
+        if hasattr(self.config, 'quantization_config'):
+            quant_config = self.config.quantization_config
+            # Example: Apply dynamic quantization
+            import torch.quantization as quant
+            self.model = quant.quantize_dynamic(
+                self.model, 
+                {torch.nn.Linear},  # Specify layers to quantize
+                dtype=torch.qint8
+            )
+            print("Quantization applied to the model.")
+        else:
+            raise ValueError("Quantization configuration is missing in the training config.")
+        
     def _setup_distributed(self):
         """Initialize distributed process group"""
         if not dist.is_initialized():
@@ -132,3 +153,27 @@ class LLMTrainer:
         
         for batch in self._create_batches(dataset):
             yield self.text_processor.process_batch(batch)
+
+    def training_step(self, batch):
+        """
+        Public method to handle a training step.
+        """
+        loss = self._training_step(batch)
+        return loss
+
+    def _training_step(self, batch):
+        """
+        Private method that performs the actual training step.
+        """
+        self.model.train()
+        inputs = self.tokenizer(batch['input'], return_tensors='pt').to(self.config.device)
+        labels = batch['labels'].to(self.config.device)
+        
+        outputs = self.model(**inputs, labels=labels)
+        loss = outputs.loss
+        
+        loss.backward()
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+        
+        return loss
