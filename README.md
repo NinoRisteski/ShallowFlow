@@ -170,3 +170,7 @@ ShallowFlow fills a specific niche by providing a practical solution for ML engi
 [4] Anodot, "AWS G4 Instance Cost Optimization Guide," Anodot Learning Center, 2024. [Online]. Available: https://www.anodot.com/learning-center/aws-cost-optimization/ec2/g4/
 
 [5] Hyperight, "The 4 Pillars of Effective LLM Training," Hyperight Technical Resources, Feb. 2024. [Online]. Available: https://hyperight.com/4-pillars-to-effective-training-of-large-language-models/
+
+[6] S. Böhm, "ShallowSpeed: Small scale distributed training of sequential deep learning models," GitHub Repository, 2024. [Online]. Available: https://github.com/siboehm/ShallowSpeed
+
+Note: ShallowSpeed served as inspiration for this project, implementing similar concepts for distributed training but focused specifically on LLM training on cost-effective GPU setups.
