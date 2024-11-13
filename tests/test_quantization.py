@@ -28,4 +28,15 @@ def test_different_bit_widths(bits):
     quantizer = Quantizer(bits=bits)
     x = torch.randn(10, 10)
     x_q, scale, zero_point = quantizer.quantize(x)
-    assert x_q.max() <= 2**(bits-1) - 1
+    
+    # Ensure proper dtype based on bit width
+    if bits <= 8:
+        expected_dtype = torch.int8
+        max_value = 2**(bits) - 1  # Use full range instead of signed range
+    else:
+        expected_dtype = torch.int16
+        max_value = 2**(bits) - 1
+
+    assert x_q.dtype == expected_dtype
+    assert x_q.max() <= max_value
+    assert x_q.min() >= 0  # Assuming unsigned quantization

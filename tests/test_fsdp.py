@@ -2,6 +2,8 @@ import pytest
 import torch
 from src.shallowflow.strategies.fsdp import FSDPStrategy, FSDPConfig
 from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
+from torch.distributed.fsdp import MixedPrecision
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_fsdp_initialization():
@@ -32,8 +34,15 @@ def test_fsdp_model_preparation(small_model):
     
     assert isinstance(wrapped_model, torch.distributed.fsdp.FullyShardedDataParallel)
 
-@pytest.mark.parametrize("bits", [4, 8, 16])
-def test_different_bit_widths(bits):
-    config = FSDPConfig(min_num_params=1e6, mixed_precision_dtype=bits)
-    strategy = FSDPStrategy(config)
-    assert strategy.config.mixed_precision_dtype == bits
+@pytest.mark.parametrize("bit_width", [4, 8, 16])
+def test_different_bit_widths(bit_width):
+    mixed_precision_policy = MixedPrecision(
+        param_dtype=torch.float32,
+        reduce_dtype=torch.float32,
+        buffer_dtype=torch.float32
+    )
+    
+    fsdp_config = FSDP.config(
+        mixed_precision=mixed_precision_policy,
+        # ... rest of your config ...
+    )

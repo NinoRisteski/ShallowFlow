@@ -2,7 +2,7 @@ import pytest
 import torch
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from src.shallowflow.utils.config import TrainingConfig
+from src.shallowflow.config import LLMConfig
 
 
 @pytest.fixture(scope="session")
@@ -26,7 +26,8 @@ def sample_batch():
 
 @pytest.fixture
 def training_config():
-    return TrainingConfig(
+    return LLMConfig(
+        device="cpu",
         model_name="sshleifer/tiny-gpt2",
         batch_size=4,
         num_epochs=1

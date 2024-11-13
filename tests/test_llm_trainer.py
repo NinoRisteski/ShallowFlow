@@ -7,9 +7,13 @@ def test_trainer_initialization(small_model, training_config):
     assert trainer.model is not None
     assert trainer.config == training_config
 
-def test_trainer_to_device(small_model, training_config, device):
-    trainer = LLMTrainer(small_model, training_config)
-    assert next(trainer.model.parameters()).device == device
+def test_trainer_to_device(small_model, training_config):
+    trainer = LLMTrainer(
+        model=small_model,
+        config=training_config
+    )
+    expected_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    assert next(trainer.model.parameters()).device == expected_device
 
 def test_training_step(small_model, training_config, sample_batch):
     trainer = LLMTrainer(small_model, training_config)
