@@ -42,7 +42,7 @@ ShallowFlow is a distributed training framework designed for LLM training on cos
 
 
 ## Install
-``` 
+```python
 # Clone repository
 git clone https://github.com/NinoRisteski/ShallowFlow.git
 cd shallowflow
@@ -60,14 +60,14 @@ conda activate shallowflow
 ```
 ## Setup
 #### Your GPU
-```
+```python
 # Set environment variables
 export CUDA_VISIBLE_DEVICES=0
 export WANDB_PROJECT="shallowflow-training"  # Optional for tracking
 ```
 
 #### AWS
-```
+```python
 # Configure AWS credentials
 aws configure
 
@@ -76,7 +76,7 @@ export AWS_REGION=us-west-2
 export AWS_INSTANCE_TYPE=g4dn.xlarge
 ```
 #### WandB
-```
+```python
 # Set WandB API key
 export WANDB_API_KEY="your-wandb-api-key"
 ```
@@ -84,7 +84,7 @@ export WANDB_API_KEY="your-wandb-api-key"
 ## Running ShallowFlow
 
 #### Train on local GPU
-```
+```python
 # Train on Tiny Shakespeare dataset
 python train.py \
     --model_name gpt2 \
@@ -94,7 +94,7 @@ python train.py \
     --use_wandb
 ```
 #### Train with Optimizations
-```
+```python
 # Train with LoRA and Quantization
 python train.py \
     --model_name gpt2 \
@@ -105,7 +105,7 @@ python train.py \
     --use_wandb
 ```
 #### Train on AWS
-```
+```python
 # Train on AWS
 python train.py \
     --model_name gpt2 \
@@ -116,7 +116,7 @@ python train.py \
 ```
 ## Monitoring 
 
-```
+```python
 # Set up wandb
 wandb login
 
@@ -128,7 +128,7 @@ python train.py \
     --wandb_entity "my-username"
 ```
 Or: 
-```
+```python
 # Monitor GPU usage
 nvidia-smi
 
@@ -136,7 +136,7 @@ nvidia-smi
 tail -f logs/training.log
 ```
 ## Example Test Run:
-```
+```python
 # Fast testing configuration
 python train.py \
     --model_name gpt2 \
@@ -145,7 +145,7 @@ python train.py \
     --num_epochs 1 \
     --use_quantization
 ```
-```
+```python
 # Complete training configuration
 python train.py \
     --model_name gpt2 \
