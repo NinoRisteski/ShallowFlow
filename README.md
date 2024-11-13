@@ -59,14 +59,14 @@ conda env create -f environment.yml
 conda activate shallowflow
 ```
 ## Setup
-### Your GPU
+#### Your GPU
 ```
 # Set environment variables
 export CUDA_VISIBLE_DEVICES=0
 export WANDB_PROJECT="shallowflow-training"  # Optional for tracking
 ```
 
-### AWS
+#### AWS
 ```
 # Configure AWS credentials
 aws configure
@@ -75,7 +75,7 @@ aws configure
 export AWS_REGION=us-west-2
 export AWS_INSTANCE_TYPE=g4dn.xlarge
 ```
-### WandB
+#### WandB
 ```
 # Set WandB API key
 export WANDB_API_KEY="your-wandb-api-key"
@@ -83,7 +83,7 @@ export WANDB_API_KEY="your-wandb-api-key"
 
 ## Running ShallowFlow
 
-### Train on local GPU
+#### Train on local GPU
 ```
 # Train on Tiny Shakespeare dataset
 python train.py \
@@ -93,7 +93,7 @@ python train.py \
     --num_epochs 3 \
     --use_wandb
 ```
-### Train with Optimizations
+#### Train with Optimizations
 ```
 # Train with LoRA and Quantization
 python train.py \
@@ -104,7 +104,7 @@ python train.py \
     --use_quantization \
     --use_wandb
 ```
-###Train on AWS
+#### Train on AWS
 ```
 # Train on AWS
 python train.py \
