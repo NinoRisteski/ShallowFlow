@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.shallowflow.utils.config import LLMConfig
+from unittest.mock import patch
 
 
 @pytest.fixture(scope="session")
@@ -32,4 +33,9 @@ def training_config():
         batch_size=4,
         num_epochs=1
     )
+
+@pytest.fixture
+def mock_mixed_precision():
+    with patch('shallowflow.fsdp_strategy.MixedPrecision', autospec=True) as mock:
+        yield mock
 

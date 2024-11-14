@@ -3,6 +3,8 @@ from unittest.mock import patch, MagicMock
 import torch
 from src.shallowflow.strategies.fsdp import FSDPStrategy, FSDPConfig
 from torch.distributed.fsdp import FullyShardedDataParallel
+from torch.distributed.fsdp import MixedPrecision
+from unittest import mock
 
 class TestFSDPStrategy(unittest.TestCase):
     def setUp(self):
@@ -11,7 +13,7 @@ class TestFSDPStrategy(unittest.TestCase):
         self.config = FSDPConfig(
             min_num_params=1000,
             cpu_offload=True,
-            mixed_precision=False,
+            mixed_precision=True,
             backward_prefetch=False,
             activation_checkpointing=True
         )
@@ -20,35 +22,38 @@ class TestFSDPStrategy(unittest.TestCase):
     @patch('src.shallowflow.strategies.fsdp.wrap')
     @patch('src.shallowflow.strategies.fsdp.enable_wrap')
     @patch('torch.cuda.is_available', return_value=False)
-    @patch('torch.cuda.current_device', return_value=0)
-    @patch('torch.cuda.device_count')
-    def test_prepare_model(self, mock_device_count, mock_current_device, mock_cuda_available, mock_enable_wrap, mock_wrap):
+    @patch('torch.distributed.fsdp.MixedPrecision')
+
+    def test_prepare_model(self, mixed_precision, is_available, enable_wrap, wrap):
         # Mock the wrapped model
         wrapped_fsdp = MagicMock(spec=FullyShardedDataParallel)
-        mock_wrap.return_value = wrapped_fsdp
-        mock_enable_wrap.return_value.__enter__.return_value = None  
+        wrap.return_value = wrapped_fsdp
+        enable_wrap.return_value.__enter__.return_value = None
+        enable_wrap.return_value.__exit__.return_value = None
         
         # Call the method under test
         wrapped_model = self.strategy.prepare_model(self.model)
         
         # Assertions to ensure wrapping was called correctly
-        mock_enable_wrap.assert_called_once()
-        mock_wrap.assert_called_once_with(self.model)
+        enable_wrap.assert_called_once()
+        wrap.assert_called_once_with(self.model)
         self.assertIs(wrapped_model, wrapped_fsdp)
     
     def test_prepare_optimizer(self):
-        # Choose an optimizer class for testing
-        optimizer_class = torch.optim.Adam
+        # Mock an FSDP wrapped model
+        mock_model = MagicMock(spec=FullyShardedDataParallel)
+        mock_params = [torch.nn.Parameter(torch.randn(2, 2))]
+        mock_model.parameters.return_value = mock_params
         
-        # Mock the model parameters
-        with patch.object(self.model, 'parameters', return_value=self.model.parameters()):
-            # Call the method under test
-            optimizer = self.strategy.prepare_optimizer(self.model, optimizer_class, lr=0.001)
-            
-            # Assertions to ensure optimizer is created correctly
-            self.assertIsInstance(optimizer, optimizer_class)
-            self.assertEqual(optimizer.defaults['lr'], 0.001)
-            self.assertIn('params', optimizer.param_groups[0])
+        optimizer = self.strategy.prepare_optimizer(
+            mock_model, 
+            torch.optim.Adam,
+            lr=0.001
+        )
+        
+        self.assertIsInstance(optimizer, torch.optim.Adam)
+        self.assertEqual(optimizer.defaults['lr'], 0.001)
+        self.assertEqual(optimizer.param_groups[0]['params'], mock_params)
 
     def test_init_with_default_config(self):
         # Initialize strategy without passing a config
@@ -60,26 +65,45 @@ class TestFSDPStrategy(unittest.TestCase):
         self.assertTrue(default_strategy.config.backward_prefetch)
         self.assertFalse(default_strategy.config.activation_checkpointing)
     
-    def test_get_mixed_precision_policy(self):
-        # Ensure mixed precision is enabled in the config
-        self.strategy.config.mixed_precision = True
+    @patch('torch.distributed.fsdp.MixedPrecision')
+    @patch('src.shallowflow.strategies.fsdp.StrategyInstance')
+    def test_get_mixed_precision_policy(self, strategy_instance, mixed_precision):
+        # Create a mock MixedPrecision instance with the expected attributes
+        mock_policy = MagicMock()
+        mock_policy.param_dtype = torch.float16
+        mock_policy.reduce_dtype = torch.float16
+        mock_policy.buffer_dtype = torch.float16
+        mixed_precision.return_value = mock_policy
+
+        # Test when mixed precision is enabled
+        policy = self.strategy._get_mixed_precision_policy()
         
-        # Test mixed precision policy when enabled
-        with patch('torch.distributed.fsdp.MixedPrecision') as mock_mixed_precision:
-            # Call the method to test
-            policy = self.strategy._get_mixed_precision_policy()
-            
-            # Verify the mock was called correctly
-            mock_mixed_precision.assert_called_once_with(
-                param_dtype=torch.float16,
-                reduce_dtype=torch.float16,
-                buffer_dtype=torch.float16
-            )
+        # Verify MixedPrecision was called with correct arguments
+        mixed_precision.assert_called_once_with(
+            param_dtype=torch.float16,
+            reduce_dtype=torch.float16,
+            buffer_dtype=torch.float16
+        )
         
-        # Test mixed precision policy when disabled
+        # Verify the returned policy has correct attributes
+        self.assertEqual(policy.param_dtype, torch.float16)
+        self.assertEqual(policy.reduce_dtype, torch.float16)
+        self.assertEqual(policy.buffer_dtype, torch.float16)
+
+        # Test when mixed precision is disabled
         self.strategy.config.mixed_precision = False
         policy = self.strategy._get_mixed_precision_policy()
         self.assertIsNone(policy)
+
+    def test_mixed_precision_configuration(self):
+        # Test the full configuration with mixed precision
+        strategy = FSDPStrategy(FSDPConfig(mixed_precision=True))
+        policy = strategy._get_mixed_precision_policy()
+        
+        self.assertIsInstance(policy, MixedPrecision)
+        self.assertEqual(policy.param_dtype, torch.float16)
+        self.assertEqual(policy.reduce_dtype, torch.float16)
+        self.assertEqual(policy.buffer_dtype, torch.float16)
     
     def test_get_cpu_offload(self):
         # Test CPU offload when enabled
