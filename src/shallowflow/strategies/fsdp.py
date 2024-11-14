@@ -28,14 +28,14 @@ class FSDPStrategy:
         self.config = config or FSDPConfig()
         
     def _get_mixed_precision_policy(self):
-        """Configure mixed precision policy"""
-        if self.config.mixed_precision:
-            return MixedPrecision(
-                param_dtype=torch.float16,
-                reduce_dtype=torch.float16,
-                buffer_dtype=torch.float16
-            )
-        return None
+        if not self.config.mixed_precision:
+            return None
+        
+        return MixedPrecision(
+            param_dtype=torch.float16,
+            reduce_dtype=torch.float16,
+            buffer_dtype=torch.float16
+        )
         
     def _get_cpu_offload(self):
         """Configure CPU offload"""

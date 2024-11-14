@@ -17,28 +17,23 @@ class TestFSDPStrategy(unittest.TestCase):
         )
         self.strategy = FSDPStrategy(config=self.config)
     
-    @patch('torch.distributed.fsdp.FullyShardedDataParallel')
-    @patch('torch.distributed.fsdp.wrap')
-    @patch('torch.distributed.fsdp.enable_wrap')
+    @patch('src.shallowflow.strategies.fsdp.wrap')
+    @patch('src.shallowflow.strategies.fsdp.enable_wrap')
     @patch('torch.cuda.is_available', return_value=False)
     @patch('torch.cuda.current_device', return_value=0)
     @patch('torch.cuda.device_count')
-    def test_prepare_model(self, mock_device_count, mock_current_device, mock_cuda_available, mock_enable_wrap, mock_wrap, mock_fsdp):
+    def test_prepare_model(self, mock_device_count, mock_current_device, mock_cuda_available, mock_enable_wrap, mock_wrap):
         # Mock the wrapped model
         wrapped_fsdp = MagicMock(spec=FullyShardedDataParallel)
-        mock_wrap.wrap.return_value = wrapped_fsdp
+        mock_wrap.return_value = wrapped_fsdp
         mock_enable_wrap.return_value.__enter__.return_value = None  
         
-        # Initialize strategy
-        strategy = FSDPStrategy()
-        model = MagicMock()  # Replace with your actual model mock or fixture
-        
         # Call the method under test
-        wrapped_model = strategy.prepare_model(model)
+        wrapped_model = self.strategy.prepare_model(self.model)
         
         # Assertions to ensure wrapping was called correctly
         mock_enable_wrap.assert_called_once()
-        mock_wrap.wrap.assert_called_once_with(model)
+        mock_wrap.assert_called_once_with(self.model)
         self.assertIs(wrapped_model, wrapped_fsdp)
     
     def test_prepare_optimizer(self):
@@ -60,19 +55,26 @@ class TestFSDPStrategy(unittest.TestCase):
         default_strategy = FSDPStrategy()
         self.assertIsInstance(default_strategy.config, FSDPConfig)
         self.assertEqual(default_strategy.config.min_num_params, 1e6)
-        self.assertFalse(default_strategy.config.cpu_offload is False)
+        self.assertFalse(default_strategy.config.cpu_offload)
         self.assertTrue(default_strategy.config.mixed_precision)
+        self.assertTrue(default_strategy.config.backward_prefetch)
+        self.assertFalse(default_strategy.config.activation_checkpointing)
     
     def test_get_mixed_precision_policy(self):
+        # Ensure mixed precision is enabled in the config
+        self.strategy.config.mixed_precision = True
+        
         # Test mixed precision policy when enabled
-        with patch('src.shallowflow.strategies.fsdp.MixedPrecision') as mock_mixed_precision:
+        with patch('torch.distributed.fsdp.MixedPrecision') as mock_mixed_precision:
+            # Call the method to test
             policy = self.strategy._get_mixed_precision_policy()
+            
+            # Verify the mock was called correctly
             mock_mixed_precision.assert_called_once_with(
                 param_dtype=torch.float16,
                 reduce_dtype=torch.float16,
                 buffer_dtype=torch.float16
             )
-            self.assertIsNotNone(policy)
         
         # Test mixed precision policy when disabled
         self.strategy.config.mixed_precision = False
@@ -93,4 +95,3 @@ class TestFSDPStrategy(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

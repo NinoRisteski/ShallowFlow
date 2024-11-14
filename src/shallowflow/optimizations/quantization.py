@@ -1,8 +1,11 @@
 import torch
 from typing import Tuple
+import warnings
 
 class Quantizer:
     def __init__(self, bits: int = 8):
+        if not isinstance(bits, int) or bits <= 0 or bits > 32:
+            raise ValueError("bits must be a positive integer <= 32")
         self.bits = bits
         self.min_val = -(2**(bits-1))
         self.max_val = 2**(bits-1) - 1
@@ -11,6 +14,14 @@ class Quantizer:
         self,
         x: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if x.numel() == 0:
+            raise RuntimeError("Cannot quantize empty tensor")
+            
+        if torch.isinf(x).any() or torch.isnan(x).any():
+            warnings.warn("Input tensor contains inf or nan values")
+            x = torch.nan_to_num(x, nan=0.0, posinf=x[~torch.isinf(x)].max().item(), 
+                               neginf=x[~torch.isinf(x)].min().item())
+        
         scale = (x.max() - x.min()) / (2**self.bits - 1)
         zero_point = (x.min() / scale).round()
         
