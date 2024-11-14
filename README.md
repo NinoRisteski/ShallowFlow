@@ -47,21 +47,21 @@ ShallowFlow is a distributed training framework designed for LLM training on cos
 git clone https://github.com/NinoRisteski/ShallowFlow.git
 cd shallowflow
 
-# Create virtual environment
+# Create virtual env
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install package
 pip install -e .
 
-# For conda environment
+# Conda env
 conda env create -f environment.yml
 conda activate shallowflow
 ```
 ## Setup
 #### Your GPU
 ```python
-# Set environment variables
+# Environment var
 export CUDA_VISIBLE_DEVICES=0
 export WANDB_PROJECT="shallowflow-training"  # Optional for tracking
 ```
@@ -135,7 +135,7 @@ nvidia-smi
 # Check training logs
 tail -f logs/training.log
 ```
-## Example Test Run:
+## Test Runs:
 ```python
 # Fast testing configuration
 python train.py \
