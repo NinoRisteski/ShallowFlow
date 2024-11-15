@@ -6,12 +6,6 @@ ShallowFlow is a distributed training framework designed for LLM training on cos
 
 ## Core
 
-**Objectives**
-- Enable LLM training on single T4 GPU setups
-- Optimize memory usage for resource-constrained environments
-- Provide simplified interfaces for LLM fine-tuning
-- Implement cost-effective training strategies
-
 **Features**
 - Parameter-efficient fine-tuning (PEFT) support
 - Memory optimization techniques for T4 GPU
