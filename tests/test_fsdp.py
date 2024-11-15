@@ -22,7 +22,7 @@ class TestFSDPStrategy(unittest.TestCase):
     @patch('src.shallowflow.strategies.fsdp.wrap')
     @patch('src.shallowflow.strategies.fsdp.enable_wrap')
     @patch('torch.cuda.is_available', return_value=False)
-    @patch('torch.distributed.fsdp.MixedPrecision')
+    @patch('src.shallowflow.strategies.fsdp.MixedPrecision')
 
     def test_prepare_model(self, mixed_precision, is_available, enable_wrap, wrap):
         # Mock the wrapped model
@@ -65,9 +65,8 @@ class TestFSDPStrategy(unittest.TestCase):
         self.assertTrue(default_strategy.config.backward_prefetch)
         self.assertFalse(default_strategy.config.activation_checkpointing)
     
-    @patch('torch.distributed.fsdp.MixedPrecision')
-    @patch('src.shallowflow.strategies.fsdp.StrategyInstance')
-    def test_get_mixed_precision_policy(self, strategy_instance, mixed_precision):
+    @patch('src.shallowflow.strategies.fsdp.MixedPrecision')
+    def test_get_mixed_precision_policy(self, mixed_precision):
         # Create a mock MixedPrecision instance with the expected attributes
         mock_policy = MagicMock()
         mock_policy.param_dtype = torch.float16
@@ -85,10 +84,12 @@ class TestFSDPStrategy(unittest.TestCase):
             buffer_dtype=torch.float16
         )
         
-        # Verify the returned policy has correct attributes
         self.assertEqual(policy.param_dtype, torch.float16)
         self.assertEqual(policy.reduce_dtype, torch.float16)
         self.assertEqual(policy.buffer_dtype, torch.float16)
+
+        # Reset the mock for the second test
+        mixed_precision.reset_mock()
 
         # Test when mixed precision is disabled
         self.strategy.config.mixed_precision = False
