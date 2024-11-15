@@ -85,7 +85,10 @@ python train.py \
     --dataset tiny_shakespeare \
     --batch_size 8 \
     --num_epochs 3 \
-    --use_wandb
+    --use_wandb \
+    --use_quantization \ 
+    --use_lora \          
+    --output_dir trained_models
 ```
 #### Train with Optimizations
 ```python

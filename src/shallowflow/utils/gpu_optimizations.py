@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from typing import Tuple, Optional
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
+from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
 from torch.distributed.fsdp import (
-    FullyShardedDataParallel, 
-    size_based_auto_wrap_policy, 
-    enable_wrap, 
-    wrap,
+    FullyShardedDataParallel as FSDP,
+    MixedPrecision,
+    CPUOffload,
     BackwardPrefetch
 )
 
@@ -56,7 +56,7 @@ class GTX1660Optimizer:
             torch.cuda.empty_cache()
             raise RuntimeError("GPU memory nearly exhausted")
 
-    def prepare_model(self, model: torch.nn.Module) -> FullyShardedDataParallel:
+    def prepare_model(self, model: torch.nn.Module) -> FSDP:
         """Wrap model in FSDP"""
         # Auto wrapping policy
         auto_wrap_policy = size_based_auto_wrap_policy(
@@ -74,7 +74,6 @@ class GTX1660Optimizer:
             fsdp_config["backward_prefetch"] = BackwardPrefetch.BACKWARD_PRE
             
         # Wrap model with FSDP
-        with enable_wrap(wrapper_cls=FullyShardedDataParallel, **fsdp_config):
-            wrapped_model = wrap(model)
-            
+        wrapped_model = FSDP(model, **fsdp_config)
+        
         return wrapped_model
