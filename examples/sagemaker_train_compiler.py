@@ -1,64 +1,92 @@
 import os
 import argparse
-import torch
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    Trainer,
-    TrainingArguments
-)
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from datasets import load_dataset
+from src.shallowflow.trainer import LLMTrainer
+from shallowflow.utils.config import TrainingConfig, QuantizationConfig
+from shallowflow.utils.sagemaker_utils import SageMakerConfig, SageMakerManager
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", type=str, required=True,
-                       help="gpt2, gpt2-medium, gpt2-large, gpt2-xl")
+    parser.add_argument("--model_name", type=str, default="gpt2",
+                       help="Model name or path")
     parser.add_argument("--epochs", type=int, default=3)
-    parser.add_argument("--learning_rate", type=float, default=3e-4)
+    parser.add_argument("--learning_rate", type=float, default=1e-4)
+    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--use_lora", action="store_true",
+                       help="Use LoRA optimization")
+    parser.add_argument("--use_quantization", action="store_true",
+                       help="Use 8-bit quantization")
     return parser.parse_args()
 
 def main():
     args = parse_args()
     
     # SageMaker environment variables
-    training_dir = os.environ.get("SM_CHANNEL_TRAINING", "data/datasets/tiny_shakespeare.txt")
+    training_dir = os.environ.get("SM_CHANNEL_TRAINING", "data")
     model_dir = os.environ.get("SM_MODEL_DIR", "model")
-    num_gpus = int(os.environ.get("SM_NUM_GPUS", 0))
+    
+    # Configure training settings
+    training_config = TrainingConfig(
+        model_name=args.model_name,
+        learning_rate=args.learning_rate,
+        batch_size=args.batch_size,
+        num_epochs=args.epochs,
+        use_lora=args.use_lora,
+        use_quantization=args.use_quantization,
+        aws_instance="ml.g4dn.xlarge",
+        gpu_memory=16  # G4dn.xlarge has 16GB GPU memory
+    )
+
+    # Configure SageMaker
+    sagemaker_config = SageMakerConfig(
+        instance_type="ml.g4dn.xlarge",
+        instance_count=1,
+        use_compiler=True,
+        max_epochs=args.epochs,
+        learning_rate=args.learning_rate
+    )
+    
+    # Initialize SageMaker manager
+    sagemaker_manager = SageMakerManager(sagemaker_config)
     
     # Load model and tokenizer
     model = AutoModelForCausalLM.from_pretrained(args.model_name)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     
-    # Load Tiny Shakespeare dataset
+    # Initialize trainer
+    trainer = LLMTrainer(
+        model=model,
+        tokenizer=tokenizer,
+        config=training_config
+    )
+    
+    # Load dataset
     dataset = load_dataset("tiny_shakespeare", split="train")
     
-    # Training arguments optimized for compiler
-    training_args = TrainingArguments(
-        output_dir=model_dir,
-        num_train_epochs=args.epochs,
-        learning_rate=args.learning_rate,
-        per_device_train_batch_size=16,
-        optim="adamw_torch_xla",  # Optimized for Training Compiler
-        dataloader_num_workers=4,
+    # Setup SageMaker training
+    estimator = sagemaker_manager.setup_compiler_training(
+        model_name=args.model_name,
+        script_path=__file__
     )
     
-    # Initialize trainer
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=dataset,
-        tokenizer=tokenizer,
-    )
-    
-    # Train
-    trainer.train()
-    
-    # Save model
-    trainer.save_model(model_dir)
-
-# Required for distributed training
-def _mp_fn(index):
-    main()
+    try:
+        # Train the model
+        trainer.train(
+            train_dataset=dataset,
+            num_epochs=args.epochs
+        )
+        
+        # Save the model
+        trainer.save_model(model_dir)
+        
+    except Exception as e:
+        print(f"Training failed: {str(e)}")
+        raise
+    finally:
+        # Cleanup
+        if hasattr(trainer, 'cleanup'):
+            trainer.cleanup()
 
 if __name__ == "__main__":
     main()
