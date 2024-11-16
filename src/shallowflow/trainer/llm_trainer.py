@@ -12,25 +12,48 @@ class LLMTrainer:
         self,
         model: PreTrainedModel,
         tokenizer: PreTrainedTokenizer,
-        config: TrainingConfig
-
+        config: TrainingConfig,
+        use_wandb: bool = False
     ):
         self.model = model
         self.tokenizer = tokenizer
+        
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.model.config.pad_token_id = self.tokenizer.eos_token_id
+        
         self.config = config
-        self.memory_tracker = MemoryTracker(config.gpu_memory)
+        self.use_wandb = use_wandb
+        gpu_memory = getattr(config, 'gpu_memory', 16)  # Default to 16GB for T4
+        self.memory_tracker = MemoryTracker(gpu_memory)
+        if not hasattr(config, 'learning_rate'):
+            config.learning_rate = 1e-4  
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=config.learning_rate)
 
-
-        
-        if config.use_lora:
+        self.use_lora = getattr(config, 'use_lora', False) 
+        if self.use_lora:
             self._apply_lora()
-        if config.use_quantization:
-            self._apply_quantization()
+        if hasattr(config, 'use_quantization'):
+            self.use_quantization = config.use_quantization
+            if self.use_quantization:
+                self._apply_quantization()
+        else:
+            self.use_quantization = False 
             
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
+        if self.use_wandb:
+            self._setup_wandb()
+        
+        if not hasattr(config, 'num_epochs'):
+            config.num_epochs = 3  
+        
     def _apply_lora(self):
+        # Default LoRA settings if not specified
+        lora_rank = 8  # default rank
+        if hasattr(self.config, 'lora_config'):
+            lora_rank = self.config.lora_config.rank
+        
         # Apply LoRA to model layers
         for name, module in self.model.named_modules():
             if isinstance(module, torch.nn.Linear):
@@ -47,7 +70,7 @@ class LLMTrainer:
                 lora_layer = LoRALayer(
                     in_features,
                     out_features,
-                    rank=self.config.lora_config.rank
+                    rank=lora_rank
                 )
                 setattr(self.model, name, lora_layer)
                 
@@ -55,18 +78,23 @@ class LLMTrainer:
         """
         Apply quantization to the model based on the training configuration.
         """
+        # Default quantization settings
+        default_config = {
+            'method': 'dynamic',
+            'bits': 8
+        }
+
+        quant_config = default_config
         if hasattr(self.config, 'quantization_config'):
-            quant_config = self.config.quantization_config
-            # Example: Apply dynamic quantization
-            import torch.quantization as quant
-            self.model = quant.quantize_dynamic(
-                self.model, 
-                {torch.nn.Linear},  # Specify layers to quantize
-                dtype=torch.qint8
-            )
-            print("Quantization applied to the model.")
-        else:
-            raise ValueError("Quantization configuration is missing in the training config.")
+            quant_config.update(self.config.quantization_config)
+
+        import torch.quantization as quant
+        self.model = quant.quantize_dynamic(
+            self.model, 
+            {torch.nn.Linear},
+            dtype=torch.qint8 if quant_config['bits'] == 8 else torch.qint4
+        )
+        print(f"Applied {quant_config['method']} quantization with {quant_config['bits']} bits")
         
     def _setup_distributed(self):
         """Initialize distributed process group"""
@@ -93,7 +121,6 @@ class LLMTrainer:
             self.model.train()
             for batch_idx, batch in enumerate(train_dataset):
                 loss = self._training_step(batch)
-                self._optimization_step(loss, optimizer)
                 
                 if batch_idx % 100 == 0:
                     torch.cuda.empty_cache()
@@ -166,20 +193,32 @@ class LLMTrainer:
         Private method that performs the actual training step.
         """
         self.model.train()
-        # Ensure batch contains the required input data
-        if 'input_ids' in batch:
-            inputs = {'input_ids': batch['input_ids']}
-        elif 'input' in batch:
-            inputs = self.tokenizer(batch['input'], return_tensors='pt')
+        
+        # Add debugging information
+        print("Available batch keys:", batch.keys())
+        
+        # More flexible input handling
+        if isinstance(batch, torch.Tensor):
+            inputs = {'input_ids': batch}
+        elif isinstance(batch, dict):
+            if 'input_ids' in batch:
+                inputs = {'input_ids': batch['input_ids']}
+            elif 'input' in batch:
+                inputs = self.tokenizer(batch['input'], return_tensors='pt')
+            elif 'text' in batch:
+                # Tokenize the text and create labels from it
+                inputs = self.tokenizer(batch['text'], return_tensors='pt', padding=True, truncation=True, max_length=1024)
+                labels = inputs['input_ids'].clone()  
+            else:
+                raise ValueError(f"Batch must contain either 'input_ids', 'input', or 'text' key. Got keys: {list(batch.keys())}")
         else:
-            raise ValueError("Batch must contain either 'input_ids' or 'input' key")
+            raise ValueError(f"Batch must be either a tensor or a dictionary. Got type: {type(batch)}")
         
         if 'attention_mask' in batch:
             inputs['attention_mask'] = batch['attention_mask']
         
-        inputs = {k: v.to(self.config.device) for k, v in inputs.items()}
-        
-        labels = batch['labels'].to(self.config.device)
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        labels = labels.to(self.device) 
         
         outputs = self.model(**inputs, labels=labels)
         loss = outputs.loss
@@ -189,3 +228,47 @@ class LLMTrainer:
         self.optimizer.zero_grad()
         
         return loss
+
+    def _setup_optimizer(self):
+        return torch.optim.AdamW(self.model.parameters(), lr=self.config.learning_rate)
+
+    def finish_wandb(self):
+        import wandb
+        wandb.finish()
+
+    def _setup_wandb(self):
+        """Initialize Weights & Biases tracking"""
+        import wandb
+        wandb.init(project="shallowflow")
+
+    def _evaluate(self, eval_dataset):
+        """
+        Evaluate the model on the evaluation dataset
+        """
+        self.model.eval()
+        total_loss = 0
+        num_batches = 0
+        
+        with torch.no_grad():
+            for batch in eval_dataset:
+                if isinstance(batch, torch.Tensor):
+                    inputs = {'input_ids': batch}
+                elif isinstance(batch, dict):
+                    if 'input_ids' in batch:
+                        inputs = {'input_ids': batch['input_ids']}
+                    elif 'text' in batch:
+                        inputs = self.tokenizer(batch['text'], return_tensors='pt', padding=True, truncation=True, max_length=1024)
+                        labels = inputs['input_ids'].clone()
+                    else:
+                        raise ValueError(f"Batch must contain either 'input_ids' or 'text' key. Got keys: {list(batch.keys())}")
+                else:
+                    raise ValueError(f"Batch must be either a tensor or a dictionary. Got type: {type(batch)}")
+                
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                labels = labels.to(self.device)
+                
+                outputs = self.model(**inputs, labels=labels)
+                total_loss += outputs.loss.item()
+                num_batches += 1
+        
+        return total_loss / num_batches if num_batches > 0 else float('inf')

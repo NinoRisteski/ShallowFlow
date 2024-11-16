@@ -17,6 +17,9 @@ class LoRALayer(nn.Module):
         self.alpha = alpha
         self.scaling = alpha / rank
         
+        # Original linear layer
+        self.linear = nn.Linear(in_features, out_features)
+        
         # LoRA matrices
         self.lora_A = nn.Parameter(torch.zeros(in_features, rank))
         self.lora_B = nn.Parameter(torch.zeros(rank, out_features))
@@ -26,4 +29,7 @@ class LoRALayer(nn.Module):
         nn.init.zeros_(self.lora_B)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return (x @ self.lora_A @ self.lora_B) * self.scaling
+        # Combine original transformation with LoRA update
+        original = self.linear(x)
+        lora = (x @ self.lora_A @ self.lora_B) * self.scaling
+        return original + lora

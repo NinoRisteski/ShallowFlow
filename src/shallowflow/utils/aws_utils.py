@@ -8,6 +8,10 @@ class AWSConfig:
     region: str = "us-west-2"
     spot_instance: bool = True
     volume_size: int = 100
+    use_lora: bool = False
+
+    def __init__(self, **kwargs):
+        self.use_lora = kwargs.get('use_lora', False)
 
 class AWSManager:
     def __init__(self, config: AWSConfig):

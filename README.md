@@ -108,6 +108,11 @@ python train.py \
     --model_name gpt2 \
     --dataset tiny_shakespeare \
     --batch_size 8 \
+    --learning_rate 1e-4 \
+    --use_lora \
+    --use_quantization \
+    --quantization_bits 8 \
+    --quantization_method dynamic \
     --use_aws \
     --use_wandb
 ```
