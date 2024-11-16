@@ -11,7 +11,8 @@ from datasets import load_dataset
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", type=str)
+    parser.add_argument("--model_name", type=str, required=True,
+                       help="gpt2, gpt2-medium, gpt2-large, gpt2-xl")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--learning_rate", type=float, default=3e-4)
     return parser.parse_args()
@@ -20,9 +21,9 @@ def main():
     args = parse_args()
     
     # SageMaker environment variables
-    training_dir = os.environ["SM_CHANNEL_TRAINING"]
-    model_dir = os.environ["SM_MODEL_DIR"]
-    num_gpus = os.environ["SM_NUM_GPUS"]
+    training_dir = os.environ.get("SM_CHANNEL_TRAINING", "data/datasets/tiny_shakespeare.txt")
+    model_dir = os.environ.get("SM_MODEL_DIR", "model")
+    num_gpus = int(os.environ.get("SM_NUM_GPUS", 0))
     
     # Load model and tokenizer
     model = AutoModelForCausalLM.from_pretrained(args.model_name)
@@ -39,7 +40,6 @@ def main():
         per_device_train_batch_size=16,
         optim="adamw_torch_xla",  # Optimized for Training Compiler
         dataloader_num_workers=4,
-        preprocessing_num_workers=4
     )
     
     # Initialize trainer
@@ -47,7 +47,7 @@ def main():
         model=model,
         args=training_args,
         train_dataset=dataset,
-        tokenizer=tokenizer
+        tokenizer=tokenizer,
     )
     
     # Train

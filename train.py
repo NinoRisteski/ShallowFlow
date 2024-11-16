@@ -102,7 +102,6 @@ def main():
         if hasattr(trainer, 'save_model'):
             trainer.save_model(args.output_dir)
         else:
-            # Fallback to saving using the model's save_pretrained method
             model.save_pretrained(args.output_dir)
             tokenizer.save_pretrained(args.output_dir)
             print(f"Model and tokenizer saved to {args.output_dir}")
