@@ -2,7 +2,7 @@ import os
 import argparse
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from datasets import load_dataset
-from src.shallowflow.trainer import LLMTrainer
+from shallowflow.trainer import LLMTrainer
 from shallowflow.utils.config import TrainingConfig, QuantizationConfig
 from shallowflow.utils.sagemaker_utils import SageMakerConfig, SageMakerManager
 
@@ -26,6 +26,12 @@ def main():
     training_dir = os.environ.get("SM_CHANNEL_TRAINING", "data")
     model_dir = os.environ.get("SM_MODEL_DIR", "model")
     
+    # Configure quantization
+    quantization_config = QuantizationConfig(
+        method="dynamic",
+        dtype="float16"
+    )
+    
     # Configure training settings
     training_config = TrainingConfig(
         model_name=args.model_name,
@@ -35,14 +41,14 @@ def main():
         use_lora=args.use_lora,
         use_quantization=args.use_quantization,
         aws_instance="ml.g4dn.xlarge",
-        gpu_memory=16  # G4dn.xlarge has 16GB GPU memory
+        gpu_memory=16,  # G4dn.xlarge has 16GB GPU memory
+        quantization_config=quantization_config
     )
 
     # Configure SageMaker
     sagemaker_config = SageMakerConfig(
         instance_type="ml.g4dn.xlarge",
         instance_count=1,
-        use_compiler=True,
         max_epochs=args.epochs,
         learning_rate=args.learning_rate
     )
@@ -65,7 +71,7 @@ def main():
     dataset = load_dataset("tiny_shakespeare", split="train")
     
     # Setup SageMaker training
-    estimator = sagemaker_manager.setup_compiler_training(
+    estimator = sagemaker_manager.setup_training(
         model_name=args.model_name,
         script_path=__file__
     )

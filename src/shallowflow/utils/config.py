@@ -1,36 +1,25 @@
 from dataclasses import dataclass
+from typing import Optional, List
 
 @dataclass
 class QuantizationConfig:
-    method: str  # e.g., 'dynamic', 'static'
-    dtype: str    # e.g., 'qint8', 'float16'
+    dtype: str  # e.g., 'qint8', 'float16'
+    method: str = "dynamic"  # e.g., 'dynamic', 'static'
+    layers_to_quantize: Optional[List[str]] = None
 
+@dataclass
 class LLMConfig:
-    def __init__(
-        self,
-        model_name: str,
-        gpu_memory: int,
-        use_lora: bool,
-        device: str,
-        batch_size: int,
-        num_epochs: int,
-        lora_rank: int,
-        lora_config,
-        quantization_config: QuantizationConfig,
-        use_quantization: bool = False,
-        learning_rate: float = 0.001
-    ):
-        self.model_name = model_name
-        self.gpu_memory = gpu_memory
-        self.use_lora = use_lora
-        self.device = device
-        self.batch_size = batch_size
-        self.num_epochs = num_epochs
-        self.lora_rank = lora_rank
-        self.lora_config = lora_config
-        self.use_quantization = use_quantization
-        self.quantization_config = quantization_config 
-        self.learning_rate = learning_rate
+    model_name: str
+    gpu_memory: int
+    use_lora: bool
+    device: str
+    batch_size: int
+    num_epochs: int
+    lora_rank: int
+    lora_config: 'LoRAConfig'
+    quantization_config: QuantizationConfig
+    use_quantization: bool = False
+    learning_rate: float = 0.001
 
 @dataclass
 class TrainingConfig:
@@ -51,9 +40,3 @@ class LoRAConfig:
     rank: int = 4
     alpha: int = 8
     dropout: float = 0.1
-
-class QuantizationConfig:
-    def __init__(self, dtype, layers_to_quantize=None, some_other_param=None):
-        self.dtype = dtype
-        self.layers_to_quantize = layers_to_quantize or []
-        self.some_other_param = some_other_param
