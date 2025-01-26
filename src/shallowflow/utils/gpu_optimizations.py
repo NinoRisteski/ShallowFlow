@@ -20,6 +20,9 @@ class GTX1660Config:
     prefetch_factor: int = 2
     gradient_checkpointing: bool = True
     pin_memory: bool = True
+    min_num_params: int = 1e6  # Minimum number of parameters for FSDP wrapping
+    backward_prefetch: bool = True
+    cpu_offload: bool = False
 
 class GTX1660Optimizer:
     def __init__(self, config: Optional[GTX1660Config] = None):
@@ -56,8 +59,26 @@ class GTX1660Optimizer:
             torch.cuda.empty_cache()
             raise RuntimeError("GPU memory nearly exhausted")
 
+    def _get_mixed_precision_policy(self) -> Optional[MixedPrecision]:
+        """Get mixed precision policy for FSDP."""
+        if not self.config.mixed_precision:
+            return None
+            
+        return MixedPrecision(
+            param_dtype=torch.float16,
+            reduce_dtype=torch.float16,
+            buffer_dtype=torch.float16
+        )
+        
+    def _get_cpu_offload(self) -> Optional[CPUOffload]:
+        """Get CPU offload configuration for FSDP."""
+        if not self.config.cpu_offload:
+            return None
+            
+        return CPUOffload(offload_params=True)
+
     def prepare_model(self, model: torch.nn.Module) -> FSDP:
-        """Wrap model in FSDP"""
+        """Wrap model in FSDP with appropriate optimizations."""
         # Auto wrapping policy
         auto_wrap_policy = size_based_auto_wrap_policy(
             min_num_params=self.config.min_num_params
@@ -72,6 +93,9 @@ class GTX1660Optimizer:
         
         if self.config.backward_prefetch:
             fsdp_config["backward_prefetch"] = BackwardPrefetch.BACKWARD_PRE
+            
+        # Check memory before wrapping
+        self._check_memory()
             
         # Wrap model with FSDP
         wrapped_model = FSDP(model, **fsdp_config)
