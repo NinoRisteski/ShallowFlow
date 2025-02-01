@@ -165,3 +165,32 @@ wandb/
 outputs/
 .cursorrules
 project_documentation.md
+OPTIMIZATION_HISTORY.md
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Training artifacts
+checkpoints/
+wandb/
+outputs/
+logs/
+*.pt
+*.pth
+*.bin
+*.ckpt
+
+# Misc
+.DS_Store
+.env
+.env.local
+.env.*.local
+*.log
