@@ -1,0 +1,3 @@
+"""
+ShallowFlow core package
+"""
